@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gotong-Royong Sign-Up</title>
+<style>
+  :root {
+    --bg: #f7f9f7;
+    --card: #ffffff;
+    --green: #4caf7d;
+    --green-soft: #e6f4ec;
+    --teal: #4a9d9c;
+    --teal-soft: #e4f2f2;
+    --ink: #2f3a33;
+    --muted: #6b7a70;
+    --border: #e2e8e3;
+    --warn-bg: #fff4e5;
+    --warn-ink: #b26a00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    padding: 16px;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  header { text-align: center; padding: 12px 0 20px; }
+  header h1 { font-size: 1.5rem; color: var(--green); }
+  header p { color: var(--muted); font-size: 0.95rem; }
+  section { margin-bottom: 24px; }
+  h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .choice {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    text-align: left;
+    width: 100%;
+    font: inherit;
+    color: inherit;
+  }
+  .choice .title { font-weight: 600; }
+  .choice .meta { font-size: 0.82rem; color: var(--muted); }
+  .choice.selected { border-color: var(--green); background: var(--green-soft); }
+  #slot-list .choice.selected { border-color: var(--teal); background: var(--teal-soft); }
+  .count-pill {
+    display: inline-block; background: var(--teal-soft); color: var(--teal);
+    border-radius: 999px; padding: 1px 8px; font-size: 0.75rem; font-weight: 600;
+    margin-top: 4px;
+  }
+  .nearfull {
+    display: none;
+    margin-top: 6px;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 4px 10px;
+  }
+  .board {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .signup {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 0.92rem;
+  }
+  .signup:last-child { border-bottom: none; }
+  .signup .name { font-weight: 600; }
+  .signup .detail { color: var(--muted); text-align: right; font-size: 0.82rem; }
+  .form { display: flex; gap: 8px; margin-top: 14px; }
+  .form input {
+    flex: 1; border: 2px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; font: inherit; min-width: 0;
+  }
+  .form input:focus { outline: none; border-color: var(--green); }
+  .form button {
+    background: var(--green); color: #fff; border: none; border-radius: 10px;
+    padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .form button:hover { filter: brightness(1.05); }
+  .msg { margin-top: 10px; font-size: 0.85rem; min-height: 1.2em; color: var(--warn-ink); }
+  .msg.ok { color: var(--green); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🧹 Gotong-Royong Sign-Up</h1>
+    <p>Taman Melati Community Cleanup Day — Saturday, pick a job and a time, and add your name!</p>
+  </header>
+
+  <section id="tasks">
+    <h2>1. Tasks</h2>
+    <p class="hint">Tap a task to select it.</p>
+    <div class="grid" id="task-list"></div>
+  </section>
+
+  <section id="slots">
+    <h2>2. Time Slots</h2>
+    <p class="hint">Tap a time slot to select it.</p>
+    <div class="grid" id="slot-list"></div>
+  </section>
+
+  <section id="board">
+    <h2>3. Sign-Up Board</h2>
+    <p class="hint">Who is joining, and when.</p>
+    <div class="board">
+      <div id="signup-list"></div>
+      <form class="form" id="signup-form">
+        <input id="name-input" type="text" placeholder="Your name (e.g. Aisyah)" autocomplete="off">
+        <button type="submit">Confirm</button>
+      </form>
+      <div class="msg" id="form-msg"></div>
+    </div>
+  </section>
+
+<script>
+(function () {
+  var MAX_PER_SLOT = 6;
+
+  var tasks = [
+    { id: "sweep",   label: "Sweeping walkways",  meta: "Broom & dustpan provided" },
+    { id: "trash",   label: "Trash collection",   meta: "Gloves & bags provided" },
+    { id: "food",    label: "Food & drinks setup", meta: "Help serve nasi lemak & teh tarik" }
+  ];
+
+  var slots = [
+    { id: "morning",  label: "Morning (8am – 10am)",   count: 3 },
+    { id: "midday",   label: "Midday (10am – 12pm)",  count: 2 },
+    { id: "afternoon", label: "Afternoon (2pm – 4pm)", count: 4 }
+  ];
+
+  var signups = [
+    { name: "Aisyah Binti Omar",  task: "sweep", slot: "morning" },
+    { name: "Wei Jian Tan",       task: "trash", slot: "afternoon" },
+    { name: "Ravi a/l Kumar",     task: "food",  slot: "midday" }
+  ];
+
+  var selectedTask = null;
+  var selectedSlot = null;
+
+  var taskList = document.getElementById("task-list");
+  var slotList = document.getElementById("slot-list");
+  var signupList = document.getElementById("signup-list");
+  var form = document.getElementById("signup-form");
+  var nameInput = document.getElementById("name-input");
+  var formMsg = document.getElementById("form-msg");
+
+  function renderTasks() {
+    taskList.innerHTML = "";
+    tasks.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "choice" + (selectedTask === t.id ? " selected" : "");
+      b.innerHTML = '<div class="title">' + t.label + '</div><div class="meta">' + t.meta + '</div>';
+      b.onclick = function () { selectedTask = t.id; renderTasks(); showMsg("", false); };
+      taskList.appendChild(b);
+    });
+  }
+
+  function slotCounts() {
+    var c = { morning: 0, midday: 0, afternoon: 0 };
+    slots.forEach(function (s) { c[s.id] = s.count; });
+    signups.forEach(function (s) { if (c[s.slot] !== undefined) c[s.slot]++; });
+    return c;
+  }
+
+  function renderSlots() {
+    var counts = slotCounts();
+    slotList.innerHTML = "";
+    slots.forEach(function (s) {
+      var near = counts[s.id] >= MAX_PER_SLOT - 1 && counts[s.id] < MAX_PER_SLOT;
+      var full = counts[s.id] >= MAX_PER_SLOT;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "choice" + (selectedSlot === s.id ? " selected" : "");
+      b.innerHTML =
+        '<div class="title">' + s.label + '</div>' +
+        '<div class="count-pill">' + counts[s.id] + ' signed up (sample)</div>' +
+        (near ? '<div class="nearfull" style="display:block">⚠️ Nearly full — only a few places left!</div>' : '') +
+        (full ? '<div class="nearfull" style="display:block">Slot is full</div>' : '');
+      b.onclick = function () { selectedSlot = s.id; renderSlots(); showMsg("", false); };
+      slotList.appendChild(b);
+    });
+  }
+
+  function taskLabel(id) {
+    for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i].label;
+    return id;
+  }
+  function slotShort(id) {
+    var map = { morning: "Morning", midday: "Midday", afternoon: "Afternoon" };
+    return map[id] || id;
+  }
+
+  function renderSignups() {
+    signupList.innerHTML = "";
+    signups.forEach(function (s) {
+      var d = document.createElement("div");
+      d.className = "signup";
+      d.innerHTML = '<div class="name">🙋 ' + s.name + '</div>' +
+        '<div class="detail">' + taskLabel(s.task) + '<br>' + slotShort(s.slot) + '</div>';
+      signupList.appendChild(d);
+    });
+  }
+
+  function showMsg(text, ok) {
+    formMsg.textContent = text;
+    formMsg.className = "msg" + (ok ? " ok" : "");
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = nameInput.value.trim();
+    if (!selectedTask) { showMsg("Please tap a task above first.", false); return; }
+    if (!selectedSlot) { showMsg("Please tap a time slot above first.", false); return; }
+    if (!name) { showMsg("Please type your name.", false); return; }
+    signups.push({ name: name, task: selectedTask, slot: selectedSlot });
+    nameInput.value = "";
+    renderSignups();
+    renderSlots();
+    showMsg("Thanks " + name + ", you're on the board! 🎉", true);
+  });
+
+  renderTasks();
+  renderSlots();
+  renderSignups();
+
+  // Prefill name if arriving from the demo login page (login.html?name=...)
+  try {
+    var p = new URLSearchParams(window.location.search).get("name");
+    if (p) nameInput.value = p;
+  } catch (err) {}
+
+})();
+</script>
+</body>
+</html>
